@@ -1,6 +1,7 @@
 #---
-#title: "third paper simulations" Variance Correctio, FIxed LISA table 1
-#author: "Jonatan A. Gonzalez "
+#title: Table 1: Variance case (eleventh line execution)
+#Fixed LISA functions
+#author: "Jonatan A. Gonzalez"
 #---
 ################################################################################
 #Packages
@@ -79,13 +80,18 @@ onesimu <- function(GG, nsim = 99, S1 = 0.01, rmaxx = 0.15)
   attr(rank_envelope(CS, type = "erl"), "p")
 }
 
-system.time(A <- onesimu(RFn[[1]], nsim = 999, S1 = 0.05, rmaxx = 0.15))
+#Checking the time for one simulation
+system.time(A <- onesimu(RF[[1]], nsim = 99, S1 = 0.05, rmaxx = 0.15))
 
-nP <- function(s) mclapply(RFn[sample(1:4000, 1000)], mc.cores = 60,
-                           FUN = function(x) onesimu(GG = x, nsim = 999, S1 = s, rmaxx = 0.15))
+#Using parallel computing for acceletating things
+#Note that we only use 99 simulations as illustration
+nP <- function(s) mclapply(RF, mc.cores = 14,
+                           FUN = function(x) onesimu(GG = x, nsim = 99, S1 = s, rmaxx = 0.15))
 
+#Executing parallel procedure with the diferent scales of Thomas pp
 P <- sapply(c(0.0125, 0.025, 0.05, 0.1), nP, simplify = "array")
 
+#Estimating nominal significance (this case is the second line of Table 1)
 nominal.rejection <- function(P) mean(unlist(P) <= 0.05)
 apply(P, 2, nominal.rejection)
 
