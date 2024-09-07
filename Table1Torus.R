@@ -1,5 +1,5 @@
 #---
-#title: Table 1: 
+#title: Table 1: Torus case (second line execution)
 #Fixed LISA functions
 #author: "Jonatan A. Gonzalez"
 #---
