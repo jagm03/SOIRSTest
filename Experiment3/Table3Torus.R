@@ -1,5 +1,5 @@
 #---
-#title: Table 2: Variance case (second line execution)
+#title: Table 3: Torus case (second line execution)
 #Fixed LISA functions
 #author: "Jonatan A. Gonzalez and Jiri Dvorak"
 #---
