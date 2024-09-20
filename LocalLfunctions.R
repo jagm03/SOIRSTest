@@ -1,5 +1,5 @@
 #---
-#title: Local L functions ad-hoc for our analyses
+#title: Local L functions ad-hoc for our analyses Table 5
 #author: "Jonatan A. Gonzalez"
 #---
 # Please load these functions before the execution from Table 4
