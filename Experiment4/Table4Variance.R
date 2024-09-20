@@ -1,5 +1,5 @@
 #---
-#title: Table 3: Torus case (second line execution)
+#title: Table 3: Variance case (second line execution)
 #Fixed LISA functions
 #author: "Jonatan A. Gonzalez and Jiri Dvorak"
 #---
@@ -10,7 +10,14 @@ library(GET)
 library(doParallel)
 ################################################################################
 #Preliminary functions
-#Generating random field observations
+Rshift.J <- function(Z, radius = 0.5){
+  jump <- runifdisc(1, radius = radius)
+  X <- shift(Z, jump)
+  Wf <- intersect.owin(Z$window, X$window)
+  Xok <- inside.owin(X$x, X$y, Wf)
+  return(ppp(x = X$x[Xok], y = X$y[Xok], marks = X$marks[Xok],window = Wf))
+}
+
 GRF <- function(beta = 0.2, W = owin()){
   attr(rLGCP(win = W, scale = beta), "Lambda")
 }
@@ -22,8 +29,8 @@ rThomasInhomSigma <- function(scale, kappa, mu, s0, s1){
   frame <- boundingbox(W)
   dilated <- grow.rectangle(frame, 4 * scale)
   parents <- rpoispp(kappa, win = dilated)
-  Z0 <- GRF(beta = scale, W = dilated)
-  sigma <- eval.im(s0 + s1 * abs(Z0))
+  Z0 <- abs(GRF(beta = scale, W = dilated))
+  sigma <- eval.im(s0 + s1 * Z0)
   
   if (parents$n > 0){
     n.offsprings <- rpois(n = parents$n, lambda = mu)
@@ -40,19 +47,19 @@ rThomasInhomSigma <- function(scale, kappa, mu, s0, s1){
   else return(rpoispp(0))
   ok <- inside.owin(x.out, y.out, W)
   out <- ppp(x=x.out[ok], y=y.out[ok], window = W)
-  return(out)
+  return(list(pp = out, rf = Z0[W]))
 }
 
-#Generating Thomas pp
 tpp <- function(S = 0.01){
   rThomasInhomSigma(scale = 0.2, kappa = 20, mu = 5, 
                     s0 = 0.01, s1 = S)
 }
-
 ################################################################################
 onesimu <- function(nsim = 99, S1 = 0.01, rmaxx = 0.15)
 {
-  pp <- tpp(S1)
+  #simulate a log-Gaussian with scale  =0.1
+  PP <- tpp(S1)
+  pp <- PP$pp
   # Calculate LISA functions based on K
   TemplateLisa <- localL(pp, verbose = F, rmax = rmaxx, correction = "translate")
   r0 <- floor(seq(1,513, length.out = 51))
@@ -60,8 +67,8 @@ onesimu <- function(nsim = 99, S1 = 0.01, rmaxx = 0.15)
   KLisasObs <- as.matrix(TemplateLisa)
   KLisasObs <- KLisasObs[r0, 1:(dim(KLisasObs)[2] - 2)]
   #Covariate values
-  Covariate <- GRF()
-  CovariateObs <- Covariate[pp, drop = F]
+  Covariate <- PP$rf
+  CovariateObs <- safelookup(Covariate, pp)
   
   Pearson <- function(L, Z){
     Pear <- apply(L, 1, cor, y = Z, method = "pearson")
@@ -72,13 +79,32 @@ onesimu <- function(nsim = 99, S1 = 0.01, rmaxx = 0.15)
   RhoObs <- Pearson(L = KLisasObs, Z = CovariateObs)
   
   #Random Shiftings with torus
+  pp <- pp %mark% 1:pp$n
+  #Random Shiftings with variance
   randomloc <- function() {
-    pp.shift <- rshift(pp, radius = 0.5, edge = "torus")
+    repeat {
+      pp.shift <- Rshift.J(pp)
+      nn <- npoints(pp.shift)
+      if (nn > 4) break
+    }
+    Lisa.shift <- KLisasObs[, pp.shift$marks]
     CovariateSim <- safelookup(Covariate, pp.shift)
-    return(Pearson(L = KLisasObs, Z = CovariateSim))
+    corr <- Pearson(L = Lisa.shift, Z = CovariateSim)
+    return(list(Corr = corr, N = nn))
   }
   simu <- replicate(nsim, randomloc())
-  CS <- create_curve_set(list(r = rr, obs = RhoObs, sim_m = simu))
+  Rhosimu <- sapply(simu[1, ], "[")
+  Nsimu <- sapply(simu[2, ], "[")
+  
+  #No correction but weighted variance sqrt(n) (Ti -T)
+  Rhosimu <- cbind(Rhosimu, RhoObs)
+  Rhomean <- apply(Rhosimu, 1, mean)
+  Ti <- sweep(Rhosimu, 1, Rhomean, FUN = "-")
+  Si <- c(Nsimu, npoints(pp))
+  TT <- sweep(Ti, 2, sqrt(Si), FUN = "*")
+  ####
+  
+  CS <- create_curve_set(list(r = rr, obs = TT[, nsim + 1], sim_m = TT[, 1:nsim]))
   attr(rank_envelope(CS, type = "erl"), "p")
 }
 
@@ -87,11 +113,11 @@ system.time(onesimu(nsim = 99, S1 = 0.05, rmaxx = 0.15))
 
 #Using parallel computing for acceletating things
 #Note that we only use 99 simulations as illustration
-nP <- function(s) mclapply(1:100, FUN = function(x) onesimu(nsim = 99, S1 = s, 
-                                                            rmaxx = 0.15), mc.cores = 14)
+nP <- function(s) mclapply(1:1000, FUN = function(x) onesimu(nsim = 999, S1 = s, 
+                                                             rmaxx = 0.15), mc.cores = 14)
 
 #Executing parallel procedure with the diferent scales of Thomas pp
-P <- sapply(c(0.03, 0.05), nP, simplify = "array")
+P <- sapply(c(0.03, 0.05, 0.08), nP, simplify = "array")
 
 
 #Estimating nominal significance (this case is the fifth line of Table 2)

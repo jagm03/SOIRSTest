@@ -15,7 +15,7 @@ Rshift.J <- function(Z, radius = 0.5){
   X <- shift(Z, jump)
   Wf <- intersect.owin(Z$window, X$window)
   Xok <- inside.owin(X$x, X$y, Wf)
-  return(ppp(x = X$x[Xok], y = X$y[Xok], window = Wf))
+  return(ppp(x = X$x[Xok], y = X$y[Xok], marks = X$marks[Xok],window = Wf))
 }
 
 GRF <- function(beta = 0.2, W = owin()){
@@ -67,7 +67,7 @@ onesimu <- function(nsim = 99, S1 = 0.01, rmaxx = 0.15)
   KLisasObs <- KLisasObs[r0, 1:(dim(KLisasObs)[2] - 2)]
   #Covariate values
   Covariate <- GRF()
-  CovariateObs <- Covariate[pp, drop = F]
+  CovariateObs <- safelookup(Covariate, pp)
   
   Pearson <- function(L, Z){
     Pear <- apply(L, 1, cor, y = Z, method = "pearson")
@@ -78,14 +78,17 @@ onesimu <- function(nsim = 99, S1 = 0.01, rmaxx = 0.15)
   RhoObs <- Pearson(L = KLisasObs, Z = CovariateObs)
   
   #Random Shiftings with torus
+  pp <- pp %mark% 1:pp$n
+  #Random Shiftings with variance
   randomloc <- function() {
-    pp.shift <- Rshift.J(pp, radius = 0.5)
-    Lisa.shift <- as.matrix(localL(pp.shift, verbose = F, rmax = rmaxx, 
-                                   correction = "translate"))
-    Lisa.shift <- Lisa.shift[r0, 1:(dim(Lisa.shift)[2] - 2)]
-    CovariateSim <- Covariate[pp.shift, drop = F]
+    repeat {
+      pp.shift <- Rshift.J(pp)
+      nn <- npoints(pp.shift)
+      if (nn > 4) break
+    }
+    Lisa.shift <- KLisasObs[, pp.shift$marks]
+    CovariateSim <- safelookup(Covariate, pp.shift)
     corr <- Pearson(L = Lisa.shift, Z = CovariateSim)
-    nn <- npoints(pp.shift)
     return(list(Corr = corr, N = nn))
   }
   simu <- replicate(nsim, randomloc())
@@ -109,7 +112,7 @@ system.time(onesimu(nsim = 99, S1 = 0.05, rmaxx = 0.15))
 
 #Using parallel computing for acceletating things
 #Note that we only use 99 simulations as illustration
-nP <- function(s) mclapply(1:100, FUN = function(x) onesimu(nsim = 99, S1 = s, 
+nP <- function(s) mclapply(1:1000, FUN = function(x) onesimu(nsim = 999, S1 = s, 
                                                             rmaxx = 0.15), mc.cores = 14)
 
 #Executing parallel procedure with the diferent scales of Thomas pp
