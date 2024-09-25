@@ -7,13 +7,10 @@
 #Please load the functions 2_LfunctionsData.R
 ################################################################################
 
-# Data analysis
-
 library(spatstat)
 library(spatstat.utils)
 library(GET)
 library(doParallel)
-library(sparr)
 library(spatstat.utils)
 library(sostatpp)
 
