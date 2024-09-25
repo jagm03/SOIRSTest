@@ -11,7 +11,6 @@ library(spatstat)
 library(spatstat.utils)
 library(GET)
 library(doParallel)
-library(spatstat.utils)
 library(sostatpp)
 
 # load data ("Data.RData")
