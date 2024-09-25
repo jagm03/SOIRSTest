@@ -32,7 +32,7 @@ rThomasInhomParents <- function(scale = 0.2, k0, mu, sd, beta = 0.2){
 }
 
 tpp <- function(S = 0.2){
-  rThomasInhomParents(sd = S, k0 = 1.8, mu = 10) #1.8 = 100, 2.7 = 250, 3.45 = 500
+  rThomasInhomParents(sd = S, k0 = 2.7, mu = 10) #1.8 = 100, 2.7 = 250, 3.45 = 500
 }
 
 ################################################################################
