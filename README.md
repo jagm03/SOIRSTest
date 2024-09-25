@@ -11,10 +11,10 @@ This repository contains the code associated with the paper:
 - Programming Language: R (version 4.0 or higher)
 
 - R Packages:
- + spatstat
- + spatstat.utils
- + GET
- + ggplot2
- + doParallel
- + sostatpp (https://github.com/ute/hidden2statspat.git)
+    + spatstat
+    + spatstat.utils
+    + GET
+    + ggplot2
+    + doParallel
+    + sostatpp (https://github.com/ute/hidden2statspat.git)
  
