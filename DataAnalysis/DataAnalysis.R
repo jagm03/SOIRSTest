@@ -1,5 +1,5 @@
 #---
-#title: Data analysis: torus case 
+#title: Data analysis
 #Fixed LISA functions
 #author: "Jonatan A. Gonzalez"
 #---
@@ -31,7 +31,7 @@ pp <- pp %mark% lambda
 # Calculate LISA functions based on K
 TemplateLisa <- localL1inhom(pp, lambda = lambda, verbose = F, 
                              correction = "translate", rmax = rmaxx)
-#r0 <- floor(seq(1,513, length.out = 51))
+
 rr <- TemplateLisa$r
 KLisasObs <- as.matrix(TemplateLisa)
 KLisasObs <- KLisasObs[, 1:(dim(KLisasObs)[2] - 2)]
@@ -45,6 +45,7 @@ Pearson <- function(L, Z){
   return(Pear)
 }
 
+#Computing observed correlations
 RhoObs <- lapply(CovariateObs, function(C) Pearson(L = KLisasObs, Z = C))
 
 ############### Random Shifting with torus #####################################
@@ -55,26 +56,26 @@ randomloc <- function(C) {
   return(Pearson(L = KLisasObs, Z = CovariateSim))
 }
 
-nsim <- 9999
+# For illustration purposes we set 999 shiftings
+nsim <- 999
 Process <- function(R,C) {
   simu <- replicate(nsim, randomloc(C))
   create_curve_set(list(r = rr, obs = R, sim_m = simu))
 }
 
-simu <- mcmapply(Process, RhoObs, Cov, mc.cores = 15, SIMPLIFY = F)
 
-#simuPearsonTorus <- simu
-#simuKendallTorus <- simu
-save(simuKendallTorus, simuPearsonTorus, file = "DataPerm.RData")
+#Using parallel computing for acceletating things
+simu <- mcmapply(Process, RhoObs, Cov, mc.cores = 14, SIMPLIFY = F)
 
-
+# Plot depth
 plot(rank_envelope(simu[[1]], type = "erl"))
+# Plot bank
 plot(rank_envelope(simu[[2]], type = "erl"))
+# Plot slope
 plot(rank_envelope(simu[[3]], type = "erl"))
+# Plot radiation
 plot(rank_envelope(simu[[4]], type = "erl"))
 
-
-#simuPearsonTorus <- simu
 
 
 ############### Random Shifting with variance ##################################
@@ -102,7 +103,7 @@ randomlocVariance <- function(C) {
   return(list(Corr = corr, N = nn))
 }
 
-nsim <- 9999
+nsim <- 999
 Process <- function(R,C) {
   simu <- replicate(nsim, randomlocVariance(C))
   Rhosimu <- sapply(simu[1, ], "[")
@@ -118,30 +119,22 @@ Process <- function(R,C) {
 
 simu <- mcmapply(Process, RhoObs, Cov, mc.cores = 15, SIMPLIFY = F)
 
-simuPearsonVariance <- simu
-simuKendallVariance <- simu
-
-plot(rank_envelope(simuKendallTorus[[1]], type = "erl"))
+# Plot depth
+plot(rank_envelope(simu[[1]], type = "erl"))
+# Plot bank
 plot(rank_envelope(simu[[2]], type = "erl"))
+# Plot slope
 plot(rank_envelope(simu[[3]], type = "erl"))
+# Plot radiation
 plot(rank_envelope(simu[[4]], type = "erl"))
-
-################################################################################
-save(simuPearsonVariance,
-     simuPearsonTorus,
-     simuKendallVariance,
-     simuKendallTorus, 
-     file = "DataPerm.RData")
-
 
 ################################################################################
 #Test UTE 
 beiquads <- twoquadsets(PP, nx = 12, ny = 1, minpoints = 5)
 beistyle <- list(hi = simplist(col="red",  alpha=.4, col.win="red", alpha.win=.4), 
                  lo = simplist(col="blue", alpha=.4, col.win="blue"))
-quadratsplot(PP, beiquads, beistyle, pch = 16, cex = .4, 
-             main = "Beilschmiedia quadrats for testing")
-nperm <- 9999
+
+nperm <- 999
 sos.test(reweighted(PP, intensity = lambda),
          beiquads, rmax = 2.5, rlen = 512,
          use.tbar=TRUE, nperm = nperm)
